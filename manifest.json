@@ -1,15 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Enter Lock (Marusin)",
-  "version": "1.0.0",
-  "description": "Prevent accidental message sending in ChatGPT. Press Enter for newline, Shift+Enter to send.",
+  "name": "Claude Enter Key Control (by marusin)",
+  "version": "1.1.0",
+  "description": "Control Enter key behavior in Claude. Press Enter for newline, use shortcut keys to send.",
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",
     "128": "icon128.png"
   },
+  "permissions": [
+    "storage"
+  ],
   "action": {
-    "default_title": "ChatGPT Enter Lock (Marusin)",
+    "default_title": "Claude Enter Key Control (by marusin)",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",
@@ -19,8 +23,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*"
+        "https://claude.ai/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

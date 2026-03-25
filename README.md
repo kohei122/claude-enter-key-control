@@ -1,6 +1,6 @@
-# ChatGPT Enter Lock (Marusin)
+# Claude Enter Key Control (by marusin)
 
-A Chrome extension that prevents accidental message sending in ChatGPT.
+A Chrome extension that prevents accidental message sending in Claude.
 
 ## Features
 
@@ -17,14 +17,15 @@ A Chrome extension that prevents accidental message sending in ChatGPT.
 
 - No data collection  
 - No external communication  
-- Works only on ChatGPT  
+- Works only on Claude  
 
 ## Installation
 
 1. Download from Chrome Web Store  
 2. Enable the extension  
-3. Start using ChatGPT with improved input behavior  
+3. Start using Claude with improved input behavior  
 
 ## Developer
 
 Developed by Ori no Marushin
+
