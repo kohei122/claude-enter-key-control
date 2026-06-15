@@ -1,0 +1,50 @@
+{
+  "appName": {
+    "message": "Claude Enter Key Control (by marusin)"
+  },
+  "appNameShort": {
+    "message": "Claude Enter Key Control"
+  },
+  "appDescription": {
+    "message": "防止在 Claude 中原本想換行卻誤送訊息。"
+  },
+  "enableEnterControl": {
+    "message": "啟用 Enter 控制"
+  },
+  "sendKey": {
+    "message": "送出鍵"
+  },
+  "modeShift": {
+    "message": "Shift+Enter"
+  },
+  "modeCtrl": {
+    "message": "Ctrl+Enter"
+  },
+  "modeCmd": {
+    "message": "Cmd+Enter"
+  },
+  "modeCombo": {
+    "message": "Shift+Ctrl+Enter"
+  },
+  "modeShiftCmd": {
+    "message": "Shift+Cmd+Enter"
+  },
+  "modeBoth": {
+    "message": "Shift+Enter / Ctrl+Enter"
+  },
+  "modeBothMac": {
+    "message": "Shift / Ctrl / Cmd + Enter"
+  },
+  "language": {
+    "message": "語言"
+  },
+  "languageSetting": {
+    "message": "語言設定"
+  },
+  "versionLabel": {
+    "message": "版本"
+  },
+  "otherExtensions": {
+    "message": "查看 Chrome 擴充功能"
+  }
+}

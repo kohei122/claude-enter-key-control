@@ -1,5 +1,24 @@
+(() => {
+const INIT_KEY = "__claudeEnterKeyControlInitialized";
+if (window[INIT_KEY]) return;
+window[INIT_KEY] = true;
+
 function sanitizeMode(mode) {
-  return mode === "ctrl" || mode === "both" || mode === "combo" ? mode : "shift";
+  return mode === "ctrl" ||
+    mode === "cmd" ||
+    mode === "both" ||
+    mode === "combo" ||
+    mode === "shiftCmd"
+    ? mode
+    : "shift";
+}
+
+function sanitizeModeForPlatform(mode, isMac) {
+  const sanitized = sanitizeMode(mode);
+  if (!isMac && (sanitized === "cmd" || sanitized === "shiftCmd")) {
+    return "shift";
+  }
+  return sanitized;
 }
 
 function sanitizeEnabled(enabled) {
@@ -16,17 +35,41 @@ const DEFAULT_SETTINGS = {
 
 let settings = { ...DEFAULT_SETTINGS };
 let settingsLoaded = false;
+let isMacPlatform = false;
 
-chrome.storage.local.get(DEFAULT_SETTINGS, (stored) => {
-  const next = {
-    enabled: sanitizeEnabled(stored.enabled),
-    mode: sanitizeMode(stored.mode)
-  };
+function getIsMacPlatform() {
+  return new Promise((resolve) => {
+    if (typeof chrome === "undefined" || !chrome.runtime?.getPlatformInfo) {
+      resolve(false);
+      return;
+    }
 
-  settings = next;
-  settingsLoaded = true;
-  chrome.storage.local.set(next);
-});
+    chrome.runtime.getPlatformInfo((info) => {
+      if (chrome.runtime.lastError) {
+        resolve(false);
+        return;
+      }
+      resolve(info?.os === "mac");
+    });
+  });
+}
+
+async function loadSettings() {
+  isMacPlatform = await getIsMacPlatform();
+
+  chrome.storage.local.get(DEFAULT_SETTINGS, (stored) => {
+    const next = {
+      enabled: sanitizeEnabled(stored.enabled),
+      mode: sanitizeModeForPlatform(stored.mode, isMacPlatform)
+    };
+
+    settings = next;
+    settingsLoaded = true;
+    chrome.storage.local.set(next);
+  });
+}
+
+loadSettings();
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local") return;
@@ -36,7 +79,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 
   if (changes.mode) {
-    settings.mode = sanitizeMode(changes.mode.newValue);
+    settings.mode = sanitizeModeForPlatform(changes.mode.newValue, isMacPlatform);
   }
 });
 
@@ -101,6 +144,30 @@ function resolveClaudeInputTarget(target) {
   return null;
 }
 
+function shouldSendByMode(mode, isShift, isCtrl, isAlt, isMeta, isMac) {
+  if (isAlt) return false;
+
+  if (mode === "shift") {
+    return isShift && !isCtrl && !isMeta;
+  }
+  if (mode === "ctrl") {
+    return isCtrl && !isShift && !isMeta;
+  }
+  if (mode === "cmd") {
+    return isMac && isMeta && !isShift && !isCtrl;
+  }
+  if (mode === "both") {
+    if (isMac) {
+      return [isShift, isCtrl, isMeta].filter(Boolean).length === 1;
+    }
+    return (isShift && !isCtrl && !isMeta) || (isCtrl && !isShift && !isMeta);
+  }
+  if (mode === "shiftCmd") {
+    return isMac && isShift && isMeta && !isCtrl;
+  }
+  return isShift && isCtrl && !isMeta;
+}
+
 function handleKey(event) {
   const isEnter = event.code === "Enter" || event.code === "NumpadEnter";
   const inputTarget = resolveClaudeInputTarget(event.target);
@@ -111,21 +178,16 @@ function handleKey(event) {
   if (!settings.enabled) return;
   if (!inputTarget || !isEnter) return;
 
-  const mode = sanitizeMode(settings.mode);
-  const isOnlyEnter = !event.ctrlKey && !event.metaKey && !event.shiftKey;
-  let isSend = false;
-
-  if (mode === "shift") {
-    isSend = event.shiftKey && !event.ctrlKey && !event.metaKey;
-  } else if (mode === "ctrl") {
-    isSend = event.ctrlKey && !event.shiftKey && !event.metaKey;
-  } else if (mode === "both") {
-    isSend =
-      (event.shiftKey && !event.ctrlKey && !event.metaKey) ||
-      (event.ctrlKey && !event.shiftKey && !event.metaKey);
-  } else if (mode === "combo") {
-    isSend = event.shiftKey && event.ctrlKey && !event.metaKey;
-  }
+  const mode = sanitizeModeForPlatform(settings.mode, isMacPlatform);
+  const isOnlyEnter = !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
+  const isSend = shouldSendByMode(
+    mode,
+    event.shiftKey,
+    event.ctrlKey,
+    event.altKey,
+    event.metaKey,
+    isMacPlatform
+  );
 
   // Enter only -> newline
   if (isOnlyEnter) {
@@ -145,9 +207,10 @@ function handleKey(event) {
   }
 
   // Block unapproved modified Enter to avoid Claude default shortcuts.
-  if (event.ctrlKey || event.shiftKey || event.metaKey) {
+  if (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey) {
     blockEnterEvent(event);
   }
 }
 
 document.addEventListener("keydown", handleKey, { capture: true });
+})();

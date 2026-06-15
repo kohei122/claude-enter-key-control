@@ -1,0 +1,50 @@
+{
+  "appName": {
+    "message": "Claude Enter Key Control (by marusin)"
+  },
+  "appNameShort": {
+    "message": "Claude Enter Key Control"
+  },
+  "appDescription": {
+    "message": "Prevent accidental sends when you meant to insert a line break in Claude."
+  },
+  "enableEnterControl": {
+    "message": "Enable Enter control"
+  },
+  "sendKey": {
+    "message": "Send key"
+  },
+  "modeShift": {
+    "message": "Shift+Enter"
+  },
+  "modeCtrl": {
+    "message": "Ctrl+Enter"
+  },
+  "modeCmd": {
+    "message": "Cmd+Enter"
+  },
+  "modeCombo": {
+    "message": "Shift+Ctrl+Enter"
+  },
+  "modeShiftCmd": {
+    "message": "Shift+Cmd+Enter"
+  },
+  "modeBoth": {
+    "message": "Shift+Enter / Ctrl+Enter"
+  },
+  "modeBothMac": {
+    "message": "Shift / Ctrl / Cmd + Enter"
+  },
+  "language": {
+    "message": "Language"
+  },
+  "languageSetting": {
+    "message": "Language setting"
+  },
+  "versionLabel": {
+    "message": "Version"
+  },
+  "otherExtensions": {
+    "message": "View Chrome extensions"
+  }
+}
