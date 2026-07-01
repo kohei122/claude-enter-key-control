@@ -2,12 +2,11 @@ const DEFAULT_SETTINGS = {
   enabled: true,
   mode: "shift"
 };
+const DEV_FORCE_MAC_PLATFORM_KEY = "devForceMacPlatform";
 const FORCE_LANG_STORAGE_KEY = "forceLang";
 const FORCE_LANGS = ["en", "ja", "ko", "zh_CN", "zh_TW", "es", "pt_BR"];
 const OTHER_EXTENSIONS_URL = "https://chromewebstore.google.com/search/(by%20marusin)?hl=ja&authuser=0";
 const CONTENT_SCRIPT_FILE = "content.js";
-// Local verification only. Always keep this false before publishing.
-const FORCE_MAC_FOR_DEBUG = false;
 
 function sanitizeEnabled(enabled) {
   if (enabled === true || enabled === false) return enabled;
@@ -47,6 +46,7 @@ const otherExtensionsLink = document.getElementById("other-extensions-link");
 const languageSettingLabel = document.getElementById("language-setting-label");
 const languageSelect = document.getElementById("language-select");
 let isMacPlatform = false;
+let currentForcedMessages = null;
 
 function getForcedLang() {
   const forcedLang = localStorage.getItem(FORCE_LANG_STORAGE_KEY);
@@ -148,11 +148,6 @@ function renderModeOptions(isMac, selectedMode, forcedMessages) {
 
 function getIsMacPlatform() {
   return new Promise((resolve) => {
-    if (FORCE_MAC_FOR_DEBUG) {
-      resolve(true);
-      return;
-    }
-
     if (typeof chrome === "undefined" || !chrome.runtime?.getPlatformInfo) {
       resolve(false);
       return;
@@ -166,6 +161,20 @@ function getIsMacPlatform() {
       resolve(info?.os === "mac");
     });
   });
+}
+
+function getDevForceMacPlatform() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get({ [DEV_FORCE_MAC_PLATFORM_KEY]: false }, (stored) => {
+      resolve(stored[DEV_FORCE_MAC_PLATFORM_KEY] === true);
+    });
+  });
+}
+
+async function resolveIsMacPlatform() {
+  const devForceMacPlatform = await getDevForceMacPlatform();
+  if (devForceMacPlatform) return true;
+  return getIsMacPlatform();
 }
 
 function setupLanguageSelect(forceLang) {
@@ -232,9 +241,10 @@ async function initializePopup() {
   const forceLang = getForcedLang();
   const [forcedMessages, isMac] = await Promise.all([
     loadForcedMessages(forceLang),
-    getIsMacPlatform()
+    resolveIsMacPlatform()
   ]);
   isMacPlatform = isMac;
+  currentForcedMessages = forcedMessages;
 
   injectContentScriptIntoActiveTab();
   setupSecondarySection();
@@ -271,3 +281,16 @@ if (modeOptions) {
     chrome.storage.local.set({ mode: sanitizeModeForPlatform(radio.value, isMacPlatform) });
   });
 }
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+  if (!changes[DEV_FORCE_MAC_PLATFORM_KEY]) return;
+
+  resolveIsMacPlatform().then((nextIsMacPlatform) => {
+    isMacPlatform = nextIsMacPlatform;
+    chrome.storage.local.get(DEFAULT_SETTINGS, (stored) => {
+      const mode = sanitizeModeForPlatform(stored.mode, isMacPlatform);
+      renderModeOptions(isMacPlatform, mode, currentForcedMessages);
+    });
+  });
+});

@@ -28,6 +28,10 @@ A Chrome extension that prevents accidental message sending in Claude.
 
 ## Changelog
 
+### 1.3.0
+- Improved IME handling for Japanese, Chinese, Korean, and other composition-based input methods
+- Fixed duplicate content script initialization to prevent repeated newline handling in some cases
+
 ### 1.2.1
 - Added Spanish localization
 - Added Brazilian Portuguese localization

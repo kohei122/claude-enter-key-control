@@ -1,7 +1,9 @@
 (() => {
 const INIT_KEY = "__claudeEnterKeyControlInitialized";
-if (window[INIT_KEY]) return;
+const INIT_MARKER_ATTRIBUTE = "data-claude-enter-key-control-initialized";
+if (window[INIT_KEY] || document.documentElement?.hasAttribute(INIT_MARKER_ATTRIBUTE)) return;
 window[INIT_KEY] = true;
+document.documentElement?.setAttribute(INIT_MARKER_ATTRIBUTE, "true");
 
 function sanitizeMode(mode) {
   return mode === "ctrl" ||
@@ -32,10 +34,14 @@ const DEFAULT_SETTINGS = {
   enabled: true,
   mode: "shift"
 };
+const DEV_FORCE_MAC_PLATFORM_KEY = "devForceMacPlatform";
 
 let settings = { ...DEFAULT_SETTINGS };
 let settingsLoaded = false;
 let isMacPlatform = false;
+let isComposingActive = false;
+let lastCompositionEndAt = 0;
+const COMPOSITION_END_GRACE_MS = 80;
 
 function getIsMacPlatform() {
   return new Promise((resolve) => {
@@ -54,8 +60,22 @@ function getIsMacPlatform() {
   });
 }
 
+function getDevForceMacPlatform() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get({ [DEV_FORCE_MAC_PLATFORM_KEY]: false }, (stored) => {
+      resolve(stored[DEV_FORCE_MAC_PLATFORM_KEY] === true);
+    });
+  });
+}
+
+async function resolveIsMacPlatform() {
+  const devForceMacPlatform = await getDevForceMacPlatform();
+  if (devForceMacPlatform) return true;
+  return getIsMacPlatform();
+}
+
 async function loadSettings() {
-  isMacPlatform = await getIsMacPlatform();
+  isMacPlatform = await resolveIsMacPlatform();
 
   chrome.storage.local.get(DEFAULT_SETTINGS, (stored) => {
     const next = {
@@ -80,6 +100,13 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
   if (changes.mode) {
     settings.mode = sanitizeModeForPlatform(changes.mode.newValue, isMacPlatform);
+  }
+
+  if (changes[DEV_FORCE_MAC_PLATFORM_KEY]) {
+    resolveIsMacPlatform().then((nextIsMacPlatform) => {
+      isMacPlatform = nextIsMacPlatform;
+      settings.mode = sanitizeModeForPlatform(settings.mode, isMacPlatform);
+    });
   }
 });
 
@@ -171,9 +198,12 @@ function shouldSendByMode(mode, isShift, isCtrl, isAlt, isMeta, isMac) {
 function handleKey(event) {
   const isEnter = event.code === "Enter" || event.code === "NumpadEnter";
   const inputTarget = resolveClaudeInputTarget(event.target);
+  const inCompositionGraceWindow =
+    lastCompositionEndAt > 0 &&
+    performance.now() - lastCompositionEndAt < COMPOSITION_END_GRACE_MS;
 
   if (!event.isTrusted) return;
-  if (event.isComposing) return;
+  if (isComposingActive || event.isComposing || event.keyCode === 229 || inCompositionGraceWindow) return;
   if (!settingsLoaded) return;
   if (!settings.enabled) return;
   if (!inputTarget || !isEnter) return;
@@ -213,4 +243,17 @@ function handleKey(event) {
 }
 
 document.addEventListener("keydown", handleKey, { capture: true });
+
+document.addEventListener("compositionstart", (event) => {
+  const inputTarget = resolveClaudeInputTarget(event.target);
+  if (!inputTarget) return;
+  isComposingActive = true;
+}, { capture: true });
+
+document.addEventListener("compositionend", (event) => {
+  const inputTarget = resolveClaudeInputTarget(event.target);
+  if (!inputTarget) return;
+  isComposingActive = false;
+  lastCompositionEndAt = performance.now();
+}, { capture: true });
 })();
