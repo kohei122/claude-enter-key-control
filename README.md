@@ -28,6 +28,12 @@ A Chrome extension that prevents accidental message sending in Claude.
 
 ## Changelog
 
+### 1.4.0
+- Improved Claude send button detection based on the input/composer DOM structure.
+- Improved send shortcut compatibility in multilingual Claude UI environments.
+- Reduced the risk of incorrectly detecting attachment, model selector, recording, menu, feedback, or other unrelated buttons.
+- Removed broad document-level button search from Claude send button detection.
+
 ### 1.3.1
 - Improved send shortcut compatibility for Claude in multilingual UI environments.
 - Improved send button detection for localized Claude UI labels.

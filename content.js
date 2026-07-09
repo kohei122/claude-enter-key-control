@@ -109,6 +109,38 @@ const EXCLUDED_BUTTON_LABEL_PATTERNS = [
   "評論",
   "檢舉"
 ];
+const CLAUDE_COMPOSER_ROOT_MAX_DEPTH = 10;
+const CLAUDE_COMPOSER_ROOT_MAX_BUTTONS = 8;
+const CLAUDE_ATTACHMENT_LABEL_PATTERNS = [
+  "add",
+  "file",
+  "files",
+  "connector",
+  "connectors",
+  "more",
+  "aggiungi",
+  "connettori",
+  "altro"
+];
+const CLAUDE_MODEL_LABEL_PREFIXES = [
+  "model:",
+  "modello:"
+];
+const CLAUDE_RECORD_LABEL_PATTERNS = [
+  "record",
+  "recording",
+  "voice",
+  "microphone",
+  "press and hold to record",
+  "registra",
+  "registrare",
+  "microfono",
+  "tieni premuto per registrare"
+];
+const CLAUDE_STRONG_SEND_LABELS = [
+  "Send message",
+  "Invia messaggio"
+];
 
 let settings = { ...DEFAULT_SETTINGS };
 let settingsLoaded = false;
@@ -213,51 +245,151 @@ function isVisible(element) {
   return element instanceof HTMLElement && element.getClientRects().length > 0;
 }
 
-function collectSendButtons(scope) {
-  if (!(scope instanceof Element)) return [];
+function normalizeLabel(value) {
+  return (value || "").trim().toLowerCase();
+}
 
-  const buttons = scope.querySelectorAll("button[aria-label]");
-  const sendButtons = [];
+function hasAnyLabelPattern(label, patterns) {
+  const normalizedLabel = normalizeLabel(label);
+  return patterns.some((pattern) => normalizedLabel.includes(pattern.toLowerCase()));
+}
+
+function isClaudeTextbox(element) {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.getAttribute("data-testid") === "chat-input") return true;
+
+  return element.tagName === "DIV" &&
+    element.getAttribute("contenteditable") === "true" &&
+    element.getAttribute("role") === "textbox";
+}
+
+function isTooBroadClaudeRoot(root) {
+  if (!(root instanceof HTMLElement)) return true;
+
+  const tagName = root.tagName.toLowerCase();
+  return tagName === "html" || tagName === "body" || tagName === "main";
+}
+
+function isSelectableClaudeButton(button) {
+  return button instanceof HTMLButtonElement &&
+    !button.disabled &&
+    button.getAttribute("aria-disabled") !== "true" &&
+    isVisible(button);
+}
+
+function isExcludedClaudeButton(button) {
+  if (!(button instanceof HTMLButtonElement)) return true;
+
+  const ariaLabel = button.getAttribute("aria-label") || "";
+  const normalizedAriaLabel = normalizeLabel(ariaLabel);
+  const hasMenu = button.getAttribute("aria-haspopup") === "menu";
+  const isModelSelector = button.getAttribute("data-testid") === "model-selector-dropdown" ||
+    CLAUDE_MODEL_LABEL_PREFIXES.some((prefix) => normalizedAriaLabel.startsWith(prefix));
+  const isAttachmentMenu = hasMenu && hasAnyLabelPattern(ariaLabel, CLAUDE_ATTACHMENT_LABEL_PATTERNS);
+  const isRecordButton = hasAnyLabelPattern(ariaLabel, CLAUDE_RECORD_LABEL_PATTERNS);
+  const isFeedbackButton = hasAnyLabelPattern(ariaLabel, EXCLUDED_BUTTON_LABEL_PATTERNS);
+
+  return isAttachmentMenu || isModelSelector || (hasMenu && isModelSelector) || isRecordButton || isFeedbackButton;
+}
+
+function hasKnownSendLabel(button) {
+  const ariaLabel = button.getAttribute("aria-label") || "";
+  const normalizedAriaLabel = normalizeLabel(ariaLabel);
+
+  return SEND_BUTTON_LABEL_PATTERNS.some((pattern) => ariaLabel.includes(pattern)) ||
+    SEND_BUTTON_LABEL_LOWERCASE_PATTERNS.some((pattern) => normalizedAriaLabel.includes(pattern.toLowerCase()));
+}
+
+function hasStrongClaudeSendSignal(button) {
+  if (!(button instanceof HTMLButtonElement)) return false;
+
+  const ariaLabel = button.getAttribute("aria-label") || "";
+  if (CLAUDE_STRONG_SEND_LABELS.includes(ariaLabel)) return true;
+
+  return hasKnownSendLabel(button);
+}
+
+function scoreClaudeSendButton(button, textbox, root) {
+  if (!(button instanceof HTMLButtonElement) || !(textbox instanceof HTMLElement) || !(root instanceof HTMLElement)) {
+    return 0;
+  }
+
+  let score = 0;
+  if (hasStrongClaudeSendSignal(button)) score += 100;
+  if ((button.className || "").toString().includes("_claude_")) score += 20;
+
+  const buttonRect = button.getBoundingClientRect();
+  const rootRect = root.getBoundingClientRect();
+  const isSmallButton = buttonRect.width > 0 &&
+    buttonRect.height > 0 &&
+    buttonRect.width <= 80 &&
+    buttonRect.height <= 80;
+  const isRightSideButton = rootRect.width > 0 &&
+    buttonRect.left >= rootRect.left + rootRect.width * 0.55;
+  if (isSmallButton) score += 5;
+  if (isRightSideButton) score += 10;
+
+  return score;
+}
+
+function findClaudeComposerRoot(textbox) {
+  if (!isClaudeTextbox(textbox)) return null;
+
+  let node = textbox.parentElement;
+  let depth = 0;
+  while (node instanceof HTMLElement && depth < CLAUDE_COMPOSER_ROOT_MAX_DEPTH) {
+    if (!isTooBroadClaudeRoot(node) && node.contains(textbox)) {
+      const buttons = Array.from(node.querySelectorAll("button"));
+      if (buttons.length > 0 && buttons.length <= CLAUDE_COMPOSER_ROOT_MAX_BUTTONS) {
+        return node;
+      }
+    }
+
+    node = node.parentElement;
+    depth += 1;
+  }
+
+  return null;
+}
+
+function collectClaudeSendButtonCandidates(textbox) {
+  const root = findClaudeComposerRoot(textbox);
+  if (!(root instanceof HTMLElement)) {
+    return { root: null, candidates: [], strongCandidates: [] };
+  }
+
+  const candidates = [];
+  const strongCandidates = [];
+  const buttons = Array.from(root.querySelectorAll("button"));
   for (const button of buttons) {
-    if (!(button instanceof HTMLButtonElement)) continue;
-    if (button.disabled || button.getAttribute("aria-disabled") === "true") continue;
-    if (!isVisible(button)) continue;
+    if (!isSelectableClaudeButton(button)) continue;
+    if (isExcludedClaudeButton(button)) continue;
 
-    const ariaLabel = button.getAttribute("aria-label") || "";
-    const normalizedAriaLabel = ariaLabel.toLowerCase();
-    const isExcluded =
-      EXCLUDED_BUTTON_LABEL_PATTERNS.some((pattern) => ariaLabel.includes(pattern)) ||
-      EXCLUDED_BUTTON_LABEL_PATTERNS.some((pattern) => normalizedAriaLabel.includes(pattern));
-    if (isExcluded) continue;
-
-    if (
-      SEND_BUTTON_LABEL_PATTERNS.some((pattern) => ariaLabel.includes(pattern)) ||
-      SEND_BUTTON_LABEL_LOWERCASE_PATTERNS.some((pattern) => normalizedAriaLabel.includes(pattern))
-    ) {
-      sendButtons.push(button);
+    candidates.push(button);
+    if (scoreClaudeSendButton(button, textbox, root) >= 100) {
+      strongCandidates.push(button);
     }
   }
 
-  return sendButtons;
+  return { root, candidates, strongCandidates };
 }
 
-function findSendButton(scope) {
-  const sendButtons = collectSendButtons(scope);
-  return sendButtons.length === 1 ? sendButtons[0] : null;
+function findSendButtonBySingleRemainingClaudeCandidate(root, candidates) {
+  if (!(root instanceof HTMLElement)) return null;
+  return candidates.length === 1 ? candidates[0] : null;
 }
 
 function resolveClaudeSendButton(inputTarget) {
-  if (!(inputTarget instanceof HTMLElement)) return null;
+  if (!isClaudeTextbox(inputTarget)) return null;
 
-  let node = inputTarget.parentElement;
-  while (node instanceof HTMLElement) {
-    const button = findSendButton(node);
-    if (button instanceof HTMLButtonElement) return button;
-    node = node.parentElement;
+  const { root, candidates, strongCandidates } = collectClaudeSendButtonCandidates(inputTarget);
+  if (!(root instanceof HTMLElement)) return null;
+
+  if (strongCandidates.length === 1) {
+    return strongCandidates[0];
   }
 
-  const globalButton = findSendButton(document);
-  return globalButton instanceof HTMLButtonElement ? globalButton : null;
+  return findSendButtonBySingleRemainingClaudeCandidate(root, candidates);
 }
 
 function resolveClaudeInputTarget(target) {
@@ -265,11 +397,11 @@ function resolveClaudeInputTarget(target) {
 
   // Primary: Claude main input.
   const chatInput = target.closest('[data-testid="chat-input"]');
-  if (chatInput instanceof HTMLElement) return chatInput;
+  if (isClaudeTextbox(chatInput)) return chatInput;
 
   // Fallback: contenteditable textbox shape used by Claude input variants.
   const textbox = target.closest('[contenteditable="true"][role="textbox"]');
-  if (textbox instanceof HTMLElement) return textbox;
+  if (isClaudeTextbox(textbox)) return textbox;
 
   return null;
 }
