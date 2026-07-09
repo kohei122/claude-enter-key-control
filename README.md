@@ -28,6 +28,11 @@ A Chrome extension that prevents accidental message sending in Claude.
 
 ## Changelog
 
+### 1.3.1
+- Improved send shortcut compatibility for Claude in multilingual UI environments.
+- Improved send button detection for localized Claude UI labels.
+- Adjusted send button detection to avoid feedback, comment, and report buttons.
+
 ### 1.3.0
 - Improved IME handling for Japanese, Chinese, Korean, and other composition-based input methods
 - Fixed duplicate content script initialization to prevent repeated newline handling in some cases

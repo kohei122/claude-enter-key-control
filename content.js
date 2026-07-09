@@ -35,6 +35,80 @@ const DEFAULT_SETTINGS = {
   mode: "shift"
 };
 const DEV_FORCE_MAC_PLATFORM_KEY = "devForceMacPlatform";
+const SEND_BUTTON_LABEL_PATTERNS = [
+  "メッセージを送信",
+  "送信",
+  "Send",
+  "Send message",
+  "Envoyer",
+  "Envoyer un message",
+  "Enviar",
+  "Enviar mensaje",
+  "Enviar mensagem",
+  "Senden",
+  "Nachricht senden",
+  "Invia",
+  "Invia messaggio",
+  "Verzenden",
+  "Wyślij",
+  "Gönder",
+  "Kirim",
+  "Gửi",
+  "Отправить",
+  "Надіслати",
+  "메시지 보내기",
+  "보내기",
+  "전송",
+  "发送",
+  "发送消息",
+  "傳送",
+  "傳送訊息",
+  "送出"
+];
+const SEND_BUTTON_LABEL_LOWERCASE_PATTERNS = [
+  "send",
+  "envoyer",
+  "enviar",
+  "senden",
+  "invia",
+  "verzenden",
+  "wyślij",
+  "gönder",
+  "kirim",
+  "gửi",
+  "отправить",
+  "надіслати"
+];
+const EXCLUDED_BUTTON_LABEL_PATTERNS = [
+  "feedback",
+  "comment",
+  "report",
+  "menu",
+  "options",
+  "microphone",
+  "attach",
+  "settings",
+  "history",
+  "フィードバック",
+  "コメント",
+  "報告",
+  "commentaire",
+  "commentaires",
+  "comentarios",
+  "comentário",
+  "comentários",
+  "의견",
+  "피드백",
+  "댓글",
+  "신고",
+  "反馈",
+  "评论",
+  "举报",
+  "意見回饋",
+  "回饋",
+  "評論",
+  "檢舉"
+];
 
 let settings = { ...DEFAULT_SETTINGS };
 let settingsLoaded = false;
@@ -135,12 +209,41 @@ function insertClaudeNewline(target) {
   document.execCommand("insertParagraph");
 }
 
-function findSendButton(scope) {
-  if (!(scope instanceof Element)) return null;
+function isVisible(element) {
+  return element instanceof HTMLElement && element.getClientRects().length > 0;
+}
 
-  return scope.querySelector(
-    'button[aria-label="メッセージを送信"], button[aria-label*="Send" i]'
-  );
+function collectSendButtons(scope) {
+  if (!(scope instanceof Element)) return [];
+
+  const buttons = scope.querySelectorAll("button[aria-label]");
+  const sendButtons = [];
+  for (const button of buttons) {
+    if (!(button instanceof HTMLButtonElement)) continue;
+    if (button.disabled || button.getAttribute("aria-disabled") === "true") continue;
+    if (!isVisible(button)) continue;
+
+    const ariaLabel = button.getAttribute("aria-label") || "";
+    const normalizedAriaLabel = ariaLabel.toLowerCase();
+    const isExcluded =
+      EXCLUDED_BUTTON_LABEL_PATTERNS.some((pattern) => ariaLabel.includes(pattern)) ||
+      EXCLUDED_BUTTON_LABEL_PATTERNS.some((pattern) => normalizedAriaLabel.includes(pattern));
+    if (isExcluded) continue;
+
+    if (
+      SEND_BUTTON_LABEL_PATTERNS.some((pattern) => ariaLabel.includes(pattern)) ||
+      SEND_BUTTON_LABEL_LOWERCASE_PATTERNS.some((pattern) => normalizedAriaLabel.includes(pattern))
+    ) {
+      sendButtons.push(button);
+    }
+  }
+
+  return sendButtons;
+}
+
+function findSendButton(scope) {
+  const sendButtons = collectSendButtons(scope);
+  return sendButtons.length === 1 ? sendButtons[0] : null;
 }
 
 function resolveClaudeSendButton(inputTarget) {
