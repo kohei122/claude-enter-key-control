@@ -28,6 +28,12 @@ A Chrome extension that prevents accidental message sending in Claude.
 
 ## Changelog
 
+### 1.4.1
+- Strengthened fail-closed send detection for Claude composers.
+- Suppressed shortcut sending when multiple live inputs share an ambiguous send context.
+- Removed the fallback that accepted an unknown button solely because it was the only candidate.
+- Added Playwright browser regression tests and unit coverage for send safety.
+
 ### 1.4.0
 - Improved Claude send button detection based on the input/composer DOM structure.
 - Improved send shortcut compatibility in multilingual Claude UI environments.
@@ -73,3 +79,13 @@ A Chrome extension that prevents accidental message sending in Claude.
 
 Developed by Marushin
 
+
+## Local regression tests
+
+Node.js 20+ is required. Install with `npm ci` and `npx playwright install chromium`.
+Run `npm run test:unit`, `npm run test:browser`, or `npm run test:all`.
+Browser tests load the actual extension against localhost fixtures without accessing Claude.
+See [test documentation](tests/playwright/README.md) for the DOM contract, commands,
+IME coverage, and send safety rules. Shortcut sending requires a unique active input
+within its composer root and a unique known send button. Ambiguous shared inputs
+and unknown single buttons are rejected; independent composers remain supported.

@@ -1,0 +1,18 @@
+{
+  "name": "claude-enter-key-control",
+  "version": "1.4.1",
+  "private": true,
+  "description": "Local regression tests for Claude Enter Key Control",
+  "scripts": {
+    "test": "node --test tests/unit/*.test.cjs",
+    "test:unit": "npm test",
+    "test:browser": "playwright test",
+    "test:all": "npm run test:unit && npm run test:browser"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

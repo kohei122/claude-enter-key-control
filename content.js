@@ -352,44 +352,52 @@ function findClaudeComposerRoot(textbox) {
   return null;
 }
 
+function hasUniqueActiveClaudeInput(root, inputTarget) {
+  if (resolveClaudeInputTarget(document.activeElement) !== inputTarget) return false;
+
+  // Focus identifies the event source, but cannot associate a shared button
+  // with one of several live editors. Count logical inputs within this root.
+  const inputs = new Set();
+  for (const element of root.querySelectorAll(
+    '[data-testid="chat-input"], [contenteditable="true"][role="textbox"]'
+  )) {
+    const input = resolveClaudeInputTarget(element);
+    if (!input || !root.contains(input) || !isVisible(input)) continue;
+    if (input.disabled || input.readOnly || input.getAttribute("aria-disabled") === "true") continue;
+    inputs.add(input);
+  }
+  return inputs.size === 1 && inputs.has(inputTarget);
+}
+
 function collectClaudeSendButtonCandidates(textbox) {
   const root = findClaudeComposerRoot(textbox);
   if (!(root instanceof HTMLElement)) {
-    return { root: null, candidates: [], strongCandidates: [] };
+    return { root: null, strongCandidates: [] };
   }
 
-  const candidates = [];
   const strongCandidates = [];
   const buttons = Array.from(root.querySelectorAll("button"));
   for (const button of buttons) {
     if (!isSelectableClaudeButton(button)) continue;
     if (isExcludedClaudeButton(button)) continue;
 
-    candidates.push(button);
     if (scoreClaudeSendButton(button, textbox, root) >= 100) {
       strongCandidates.push(button);
     }
   }
 
-  return { root, candidates, strongCandidates };
-}
-
-function findSendButtonBySingleRemainingClaudeCandidate(root, candidates) {
-  if (!(root instanceof HTMLElement)) return null;
-  return candidates.length === 1 ? candidates[0] : null;
+  return { root, strongCandidates };
 }
 
 function resolveClaudeSendButton(inputTarget) {
   if (!isClaudeTextbox(inputTarget)) return null;
 
-  const { root, candidates, strongCandidates } = collectClaudeSendButtonCandidates(inputTarget);
+  const { root, strongCandidates } = collectClaudeSendButtonCandidates(inputTarget);
   if (!(root instanceof HTMLElement)) return null;
+  if (!hasUniqueActiveClaudeInput(root, inputTarget)) return null;
 
-  if (strongCandidates.length === 1) {
-    return strongCandidates[0];
-  }
-
-  return findSendButtonBySingleRemainingClaudeCandidate(root, candidates);
+  // Geometry/class hints alone cannot identify a send action.
+  return strongCandidates.length === 1 ? strongCandidates[0] : null;
 }
 
 function resolveClaudeInputTarget(target) {

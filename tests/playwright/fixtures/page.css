@@ -1,0 +1,5 @@
+body { font: 16px sans-serif; }
+.composer { width: 500px; padding: 12px; border: 1px solid #777; margin: 12px; }
+[contenteditable], textarea { display: block; min-height: 70px; width: 460px; }
+button { min-width: 35px; min-height: 30px; }
+[hidden] { display: none !important; }
