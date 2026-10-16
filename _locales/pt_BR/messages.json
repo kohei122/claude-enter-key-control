@@ -6,7 +6,7 @@
     "message": "Claude Enter Key Control"
   },
   "appDescription": {
-    "message": "Evita envios acidentais quando você queria inserir uma quebra de linha no Claude."
+    "message": "Use Enter para criar novas linhas no Claude, evite envios acidentais e escolha seu atalho preferido para enviar mensagens."
   },
   "enableEnterControl": {
     "message": "Ativar controle do Enter"

@@ -6,7 +6,7 @@
     "message": "Claude Enter Key Control"
   },
   "appDescription": {
-    "message": "Claude에서 줄바꿈하려다 실수로 전송하는 일을 방지합니다."
+    "message": "Claude에서 Enter 키로 줄을 바꾸고 실수로 메시지를 보내는 일을 방지하세요. 메시지를 보낼 단축키도 원하는 대로 선택할 수 있습니다."
   },
   "enableEnterControl": {
     "message": "Enter 제어 활성화"

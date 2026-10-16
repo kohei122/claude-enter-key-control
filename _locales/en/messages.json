@@ -6,7 +6,7 @@
     "message": "Claude Enter Key Control"
   },
   "appDescription": {
-    "message": "Prevent accidental sends when you meant to insert a line break in Claude."
+    "message": "Use Enter for new lines in Claude, prevent accidental sends, and choose your preferred shortcut to send messages."
   },
   "enableEnterControl": {
     "message": "Enable Enter control"

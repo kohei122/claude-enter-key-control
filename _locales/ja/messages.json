@@ -6,7 +6,7 @@
     "message": "Claude Enter Key Control"
   },
   "appDescription": {
-    "message": "Claudeで「改行したかったのに送信してしまう」を防ぎます。"
+    "message": "ClaudeでEnterキーを使って改行し、意図しない誤送信を防止。メッセージの送信には、お好みのショートカットキーを選べます。"
   },
   "enableEnterControl": {
     "message": "有効化"

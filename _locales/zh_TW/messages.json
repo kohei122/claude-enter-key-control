@@ -6,7 +6,7 @@
     "message": "Claude Enter Key Control"
   },
   "appDescription": {
-    "message": "防止在 Claude 中原本想換行卻誤送訊息。"
+    "message": "在 Claude 中使用 Enter 鍵換行，防止誤送訊息，並選擇自己喜歡的快捷鍵來傳送訊息。"
   },
   "enableEnterControl": {
     "message": "啟用 Enter 控制"

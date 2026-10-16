@@ -6,7 +6,7 @@
     "message": "Claude Enter Key Control"
   },
   "appDescription": {
-    "message": "Evita envíos accidentales cuando querías insertar un salto de línea en Claude."
+    "message": "Usa Enter para saltos de línea en Claude, evita envíos accidentales y elige tu atajo preferido para enviar mensajes."
   },
   "enableEnterControl": {
     "message": "Activar control de Enter"
