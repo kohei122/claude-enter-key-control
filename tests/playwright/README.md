@@ -1,5 +1,11 @@
 # Claude Mock DOM Browser Tests
 
+## 現行資料と過去記録の読み方
+
+以下の旧version・件数・PASS結果・「今回」は、各節に記載した当時の検証記録です。現在のversionは [manifest](../../manifest.json)、実行コマンドは [package.json](../../package.json)、対象・件数は同ディレクトリのspecと [Playwright設定](../../playwright.config.cjs) を参照してください。過去の結果を現在のコードの検証済み・提出済み・公開済みという根拠にしません。
+
+リリース時の責任分界は [共通開発・リリース運用覚書](https://github.com/kohei122/marusin-extension-catalog/blob/main/docs/enter-key-control-release-workflow.md)（閲覧にはcatalogのアクセス権が必要）を参照してください。Oopsの正式適用範囲は権限のある開発環境で確認し、設定や過去の成功だけから現在のリリース可否を判断しません。
+
 ## 目的と対象
 
 実サービスに接続せず、公開用 content.js を Chromium に unpacked extension として読み込み、
@@ -9,7 +15,7 @@
 導入前は package.json / lockfile / 自動単体テストがありませんでした。
 本番は content.js と popup.js / popup.html で構成され、service worker はありません。
 popup は設定・言語表示・対象タブへの再注入を担当します。popup UI 自体は今回の Browser 対象外です。
-リリース候補は1.4.1です。1.4.0からの本番変更はcontent.jsの送信DOM判定とmanifestのversionだけです。権限・popup・アセットは変更していません。
+2026-10-06の検証当時のリリース候補は1.4.1です。1.4.0からの本番変更はcontent.jsの送信DOM判定とmanifestのversionだけです。権限・popup・アセットは変更していません。
 
 ## 実装から確認した DOM 契約
 
@@ -161,7 +167,9 @@ nodeのPlaywright CLIで --grep unknown-root を実行し、失敗箇所がク�
 不要な初期空段落を除去し、実insertParagraph後のDOMも厳密に確認する形へ修正しました。
 retriesや待ち時間追加で回避していません。
 
-## Oopsへの将来接続
+## Oopsへの将来接続（導入時の計画・履歴）
+
+以下は当時の接続案です。現在はUnit／Browserの共通Runner登録とCI接続が存在します。未接続という案内や新規登録指示として使用せず、現在の適用範囲・対象commit・実行結果を別途確認してください。
 
 この作業ではOopsを変更しません。推奨は以下です。
 
@@ -210,7 +218,7 @@ tabindexと明示的focus操作を設定し、toBeFocusedで確認してから�
 Oops Test Runner / CIには、上記の保証範囲で接続できます。
 実Claudeへのアクセス、Store API、upload / publishは行っていません。
 
-## v1.4.1 release candidate
+## v1.4.1 release candidate（2026-10-06の検証記録）
 
 manifest / package / lockfileのversionを1.4.1へ揃えています。
 上記の1.4.0表記は安全修正段階の検証履歴です。公開baselineは1.4.0のまま維持します。
